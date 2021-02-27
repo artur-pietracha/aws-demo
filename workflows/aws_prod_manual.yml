@@ -1,0 +1,57 @@
+on: workflow_dispatch
+
+name: Manual Push prod to ECR
+
+jobs:
+  deploy:
+    name: Push prod to ECR
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.PROD_AWS_REGION_NAME }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Build, tag, and push image to Amazon ECR
+      id: build-image
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+        AWS_REGION_NAME: ${{ secrets.PROD_AWS_REGION_NAME }}
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: ${{ secrets.PROD_ECR_REPOSITORY }}
+        IMAGE_TAG: ${{ github.sha }}
+        DJANGO_SETTINGS_MODULE: ${{ secrets.PROD_DJANGO_SETTINGS_MODULE }}
+        DJANGO_SECRET_KEY: ${{ secrets.PROD_DJANGO_SECRET_KEY }}
+        DJANGO_ALLOWED_HOSTS: ${{ secrets.PROD_DJANGO_ALLOWED_HOSTS }}
+        DJANGO_DEFAULT_FROM_EMAIL: ${{ secrets.PROD_DJANGO_DEFAULT_FROM_EMAIL }}
+        DJANGO_SWAGGER_ENABLED: ${{ secrets.PROD_DJANGO_SWAGGER_ENABLED }}
+        DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+        REDIS_CACHE_URL: ${{ secrets.PROD_REDIS_CACHE_URL }}
+        CELERY_BROKER_URL: ${{ secrets.PROD_CELERY_BROKER_URL }}
+        HOST: ${{ secrets.PROD_HOST }}
+        PORT: ${{ secrets.PROD_PORT }}
+        MAILGUN_API_KEY: ${{ secrets.PROD_MAILGUN_API_KEY }}
+        MAILGUN_DOMAIN: ${{ secrets.PROD_MAILGUN_DOMAIN }}
+        AWS_STORAGE_BUCKET_NAME: ${{ secrets.PROD_AWS_STORAGE_BUCKET_NAME }}
+        CORS_ALLOWED_ORIGINS: ${{ secrets.PROD_CORS_ALLOWED_ORIGINS }}
+        DEFAULT_TO_EMAIL: ${{ secrets.PROD_DEFAULT_TO_EMAIL }}
+        SENTRY_DSN: ${{ secrets.PROD_SENTRY_DSN }}
+        AWS_SES_CONFIGURATION_SET: ${{ secrets.PROD_AWS_SES_CONFIGURATION_SET }}
+      run: |
+        mv docker/production/django/Dockerfile.* ./ && rm -rf ./docker/ci && rm -rf ./docker/local
+        docker build -t $ECR_REPOSITORY/web-prod:$IMAGE_TAG -f ./Dockerfile.web --build-arg CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS --build-arg AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_REGION_NAME=$AWS_REGION_NAME --build-arg DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE --build-arg DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY --build-arg DJANGO_ALLOWED_HOSTS=$DJANGO_ALLOWED_HOSTS --build-arg DJANGO_DEFAULT_FROM_EMAIL=$DJANGO_DEFAULT_FROM_EMAIL --build-arg DJANGO_SWAGGER_ENABLED=$DJANGO_SWAGGER_ENABLED --build-arg DATABASE_URL=$DATABASE_URL --build-arg REDIS_CACHE_URL=$REDIS_CACHE_URL --build-arg CELERY_BROKER_URL=$CELERY_BROKER_URL --build-arg HOST=$HOST --build-arg PORT=$PORT --build-arg MAILGUN_API_KEY=$MAILGUN_API_KEY --build-arg MAILGUN_DOMAIN=$MAILGUN_DOMAIN --build-arg DEFAULT_TO_EMAIL=$DEFAULT_TO_EMAIL --build-arg SENTRY_DSN=$SENTRY_DSN --build-arg AWS_SES_CONFIGURATION_SET=$AWS_SES_CONFIGURATION_SET .
+        docker push $ECR_REPOSITORY/web-prod:$IMAGE_TAG
+        docker build -t $ECR_REPOSITORY/worker-prod:$IMAGE_TAG -f ./Dockerfile.worker --build-arg CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS --build-arg AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_REGION_NAME=$AWS_REGION_NAME --build-arg DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE --build-arg DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY --build-arg DJANGO_ALLOWED_HOSTS=$DJANGO_ALLOWED_HOSTS --build-arg DJANGO_DEFAULT_FROM_EMAIL=$DJANGO_DEFAULT_FROM_EMAIL --build-arg DJANGO_SWAGGER_ENABLED=$DJANGO_SWAGGER_ENABLED --build-arg DATABASE_URL=$DATABASE_URL --build-arg REDIS_CACHE_URL=$REDIS_CACHE_URL --build-arg CELERY_BROKER_URL=$CELERY_BROKER_URL --build-arg HOST=$HOST --build-arg PORT=$PORT --build-arg MAILGUN_API_KEY=$MAILGUN_API_KEY --build-arg MAILGUN_DOMAIN=$MAILGUN_DOMAIN --build-arg DEFAULT_TO_EMAIL=$DEFAULT_TO_EMAIL --build-arg SENTRY_DSN=$SENTRY_DSN --build-arg AWS_SES_CONFIGURATION_SET=$AWS_SES_CONFIGURATION_SET .
+        docker push $ECR_REPOSITORY/worker-prod:$IMAGE_TAG
+        docker build -t $ECR_REPOSITORY/scheduler-prod:$IMAGE_TAG -f ./Dockerfile.scheduler --build-arg CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS --build-arg AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_REGION_NAME=$AWS_REGION_NAME --build-arg DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE --build-arg DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY --build-arg DJANGO_ALLOWED_HOSTS=$DJANGO_ALLOWED_HOSTS  --build-arg DJANGO_DEFAULT_FROM_EMAIL=$DJANGO_DEFAULT_FROM_EMAIL --build-arg DJANGO_SWAGGER_ENABLED=$DJANGO_SWAGGER_ENABLED --build-arg DATABASE_URL=$DATABASE_URL --build-arg REDIS_CACHE_URL=$REDIS_CACHE_URL --build-arg CELERY_BROKER_URL=$CELERY_BROKER_URL --build-arg HOST=$HOST --build-arg PORT=$PORT --build-arg MAILGUN_API_KEY=$MAILGUN_API_KEY --build-arg MAILGUN_DOMAIN=$MAILGUN_DOMAIN --build-arg DEFAULT_TO_EMAIL=$DEFAULT_TO_EMAIL --build-arg SENTRY_DSN=$SENTRY_DSN --build-arg AWS_SES_CONFIGURATION_SET=$AWS_SES_CONFIGURATION_SET .
+        docker push $ECR_REPOSITORY/scheduler-prod:$IMAGE_TAG

@@ -1,0 +1,72 @@
+FROM python:3.8-slim-buster
+
+ENV PYTHONUNBUFFERED 1
+ENV DJANGO_SETTINGS_MODULE=config.settings.production
+
+ARG DJANGO_SETTINGS_MODULE=config.settings.production
+ARG DJANGO_SECRET_KEY
+ARG DJANGO_ALLOWED_HOSTS
+ARG DJANGO_SWAGGER_ENABLED=False
+ARG DATABASE_URL
+ARG REDIS_CACHE_URL
+ARG CELERY_BROKER_URL
+ARG HOST=0.0.0.0
+ARG PORT=80
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ARG AWS_REGION_NAME
+ARG AWS_STORAGE_BUCKET_NAME
+ARG CORS_ALLOWED_ORIGINS
+
+RUN echo DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE > .env \
+    && echo CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS >> .env \
+    && echo AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME >> .env \
+    && echo AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID >> .env \
+    && echo AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY >> .env \
+    && echo AWS_REGION_NAME=$AWS_REGION_NAME >> .env \
+    && echo DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY >> .env \
+    && echo DJANGO_ALLOWED_HOSTS=$DJANGO_ALLOWED_HOSTS >> .env \
+    && echo DJANGO_SWAGGER_ENABLED=$DJANGO_SWAGGER_ENABLED >> .env \
+    && echo DATABASE_URL=$DATABASE_URL >> .env \
+    && echo REDIS_CACHE_URL=$REDIS_CACHE_URL >> .env \
+    && echo CELERY_BROKER_URL=$CELERY_BROKER_URL >> .env \
+    && echo HOST=$HOST >> .env \
+    && echo PORT=$PORT >> .env \
+
+RUN apt-get update \
+  # dependencies for building Python packages
+  && apt-get install -y build-essential \
+  # psycopg2 dependencies
+  && apt-get install -y libpq-dev \
+  # Translations dependencies
+  && apt-get install -y gettext \
+  # django-ses[bounce] dependencies
+  && apt-get install -y python3-dev \
+  && apt-get install -y libssl-dev \
+  && apt-get install -y swig \
+  && apt-get install -y openssl \
+  # cleaning up unused files
+  && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN addgroup --system django \
+    && adduser --system --ingroup django django
+
+# Requirements are installed here to ensure they will be cached.
+COPY ./requirements /requirements
+RUN pip install --no-cache-dir -r /requirements/production.txt \
+    && rm -rf /requirements
+
+COPY ./docker/production/django/start-scheduler.sh /
+RUN chmod +x /start-scheduler.sh
+RUN chown django /start-scheduler.sh
+
+COPY --chown=django:django . /app
+RUN chown django:django ./.env
+RUN mv ./.env ./app
+
+USER django
+
+WORKDIR /app
+
+CMD ["bash", "/start-scheduler.sh"]
