@@ -64,9 +64,3 @@ jobs:
         docker push $ECR_REPOSITORY/worker-prod:latest
         docker build -t $ECR_REPOSITORY/scheduler-prod:latest -f ./Dockerfile.scheduler --build-arg CORS_ALLOWED_ORIGINS=$CORS_ALLOWED_ORIGINS --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_STORAGE_BUCKET_NAME=$AWS_STORAGE_BUCKET_NAME --build-arg AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID --build-arg AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY --build-arg AWS_REGION_NAME=$AWS_REGION_NAME --build-arg DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE --build-arg DJANGO_SECRET_KEY=$DJANGO_SECRET_KEY --build-arg DJANGO_ALLOWED_HOSTS=$DJANGO_ALLOWED_HOSTS --build-arg DJANGO_SWAGGER_ENABLED=$DJANGO_SWAGGER_ENABLED --build-arg DATABASE_URL=$DATABASE_URL --build-arg REDIS_CACHE_URL=$REDIS_CACHE_URL --build-arg CELERY_BROKER_URL=$CELERY_BROKER_URL --build-arg HOST=$HOST --build-arg PORT=$PORT .
         docker push $ECR_REPOSITORY/scheduler-prod:latest
-
-    - name: Redeploy web, worker, scheduler
-      run: |
-        aws ecs update-service --cluster preprod-abileneacademy --service preprod-abilene-backend-web --force-new-deployment --region eu-central-1
-        aws ecs update-service --cluster preprod-abileneacademy --service preprod-abilene-backend-worker --force-new-deployment --region eu-central-1
-        aws ecs update-service --cluster preprod-abileneacademy --service preprod-abilene-backend-scheduler --force-new-deployment --region eu-central-1
