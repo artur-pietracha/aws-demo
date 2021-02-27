@@ -31,7 +31,7 @@ RUN echo DJANGO_SETTINGS_MODULE=$DJANGO_SETTINGS_MODULE > .env \
     && echo REDIS_CACHE_URL=$REDIS_CACHE_URL >> .env \
     && echo CELERY_BROKER_URL=$CELERY_BROKER_URL >> .env \
     && echo HOST=$HOST >> .env \
-    && echo PORT=$PORT >> .env \
+    && echo PORT=$PORT >> .env
 
 RUN apt-get update \
   # dependencies for building Python packages
