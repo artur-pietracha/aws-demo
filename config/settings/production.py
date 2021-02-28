@@ -71,4 +71,4 @@ LOGGING = {
 # ------------------------------------------------------------------------------
 SENTRY_DSN = env("SENTRY_DSN", default=None)
 sentry_sdk.init(SENTRY_DSN, integrations=[DjangoIntegration(), CeleryIntegration()])
-READ_DOT_ENV_FILE = True
+DJANGO_READ_DOT_ENV_FILE = True
